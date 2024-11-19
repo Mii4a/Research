@@ -1,0 +1,130 @@
+dirpath = 'D:/KIOXIA/Experiment/睡眠/統計分析/';
+rawdataPath = append(dirpath, 'Data_for_analysis.xlsx');
+
+fbandDir = {'δ_index/', ... 
+           'θ_index/', ...
+           'α_index/', ...
+           'β_index/', ...
+           'γ_index/', ...
+           'Whole_freq_index/'
+          };
+psdFigDir = 'PSD_stage1/';
+dfaFigDir = 'DFA_stage1/';
+psdCorrFigDir = 'PSD_correlation/';
+dfaCorrFigDir = 'DFA_correlation/';
+psdDfaFigDir = 'PSD_DFA/';
+figSaveDirName = {psdDfaFigDir, psdCorrFigDir, dfaCorrFigDir};
+newFigSaveDirName = {'Stage1_PSD_correlation/', ...
+                     'Stage1_DFA_correlation/', ...
+                     'Stage1_PSD_DFA/'};
+stage1Dir = {'stage1-EEG_stage2-latency/', ...
+             'stage1-EEG_stage1-stage2-duration/'};
+alignFigDir = {'Aligned_Figure/'};
+wFigSaveFileName = {'PSD_DFA(', 'PSD_Correlation(', 'DFA_Correlation('};
+stage1FigSaveFileName = {'Stage1_PSD_DFA(', 'Stage1_PSD_Correlation(', 'Stage1_DFA_Correlation('};
+
+fbandStr = {'δ', ... 
+           'θ', ...
+           'α', ...
+           'β', ...
+           'γ', ...
+           'Whole Frequency'
+          };
+
+chs = {'fp1', 'fp2',  ...
+    'f3', 'f4', 'f7', 'f8', 'fz'...
+    't3', 't4', 't5', 't6', ...
+    'c3', 'c4', 'cz' ...
+    'p3', 'p4', 'pz' ...
+    'o1', 'o2' ...
+    };
+
+wC = readcell(rawdataPath, 'Sheet', 'W_Data');
+stage1C = readcell(rawdataPath, 'Sheet', 'Stage1_Data');
+%Extract vals from the psqi to the end of dfa scaling exponent
+psqiCol = 6;
+wM = cell2mat(wC(2:end, psqiCol:end));
+stage1M = cell2mat(stage1C(2:end, psqiCol:end));
+varname = wC(1, psqiCol:end);
+fbandNum = 6;
+chNum = 19;
+psdFir = 8;
+psdEnd = psdFir+(chNum-1);
+dfaFir = psdEnd+1;
+dfaEnd = dfaFir+(chNum-1);
+indexLen = dfaEnd - psdFir + 1;
+
+wPsdSummary = [];
+wDfaSummary = [];
+stage1PsdSummary = [];
+stage1DfaSummary = [];
+
+for f = 2:3
+    %Extract each fband's data
+    psdLen = psdFir+indexLen*(f-1):psdEnd+indexLen*(f-1);
+    dfaLen = dfaFir+indexLen*(f-1):dfaEnd+indexLen*(f-1);
+    psdVarname = varname(psdLen)';
+    dfaVarname = varname(dfaLen)';
+    psdDirPath = string(append(dirpath, fbandDir(f), psdFigDir));
+    dfaDirPath = string(append(dirpath, fbandDir(f), dfaFigDir));
+    
+    %Initialize Stage W EEG directories for saving.
+    for d = 1:length(stage1Dir)
+        stage1PsdSaveDir(d) = append(dirpath, saveDir(f), psdFigDir, stage1Dir(d));
+        wDfaSaveDir(d) = append(dirpath, saveDir(f), dfaFigDir, stage1Dir(d));
+%         rmdir stage1PsdSaveDir{d} s
+%         rmdir wDfaSaveDir{d} s
+%         mkdir stage1PsdSaveDir{d}
+%         mkdir wDfaSaveDir{d}
+    end
+
+    for c = 1:chNum
+        chStr = cell2mat(chs(1, c));
+        chStr(1) = upper(chStr(1));
+
+        psdFigFile = append('PSD(', chStr, ', ', fbandStr(f), ').png');
+        dfaFigFile = append('DFA scaling exponent(', chStr, ', ', fbandStr(f), ').png');
+        psdSavePath = append(psdDirPath, psdFigFile);
+        dfaSavePath = append(dfaDirPath, dfaFigFile);
+        psdFig = imread(psdSavePath);
+        dfaFig = imread(dfaSavePath);
+
+        for s = 1:length(stage1Dir)
+            psdCorrSavePath(s) = string(append(dirpath, fbandDir(f), psdCorrFigDir, stage1Dir(s), psdVarname(c), '.png'));
+            dfaCorrSavePath(s) = string(append(dirpath, fbandDir(f), dfaCorrFigDir, stage1Dir(s), dfaVarname(c), '.png'));
+        end
+
+        psdCorrFig_Dur = imread(psdCorrSavePath(1));
+        psdCorrFig_S2 = imread(psdCorrSavePath(2));
+        dfaCorrFig_Dur = imread(dfaCorrSavePath(1));
+        dfaCorrFig_S2 = imread(dfaCorrSavePath(2));
+        
+%         figArr = repmat([psdFig, dfaFig], [1, 1, 1, 4]);
+%         figArr = repmat([psdCorrFig_S1, psdCorrFig_S2], [1, 1, 1, 4]);
+%         figArr = repmat([dfaCorrFig_S1, dfaCorrFig_S2], [1, 1, 1, 4]);
+        
+        for ii = 1:length(newFigSaveDirName)
+            if ii == 1
+                figArr = repmat([psdFig, dfaFig], [1, 1, 1, 4]);
+            elseif ii == 2
+                figArr = repmat([psdCorrFig_Dur, psdCorrFig_S2], [1, 1, 1, 4]);
+            elseif ii == 3
+                figArr = repmat([dfaCorrFig_Dur, dfaCorrFig_S2], [1, 1, 1, 4]);
+            end
+            montage(figArr, 'size', [1 1]);
+            figSaveDir = append(dirpath, fbandDir(f), alignFigDir, newFigSaveDirName(ii));
+            figSaveFile = append(stage1FigSaveFileName, chStr, ', ', fbandStr(f), ').png');
+            figSavePath = append(figSaveDir, figSaveFile);
+            saveas(gcf, string(figSavePath(ii)));
+        end
+
+% %         psdRAnno = compose('%.2f', string(round(psdStage1Corr(ch, 1), 2)));
+% %         psdStr = append('r = ', psdRAnno, psdPAnno);
+% %         annotation('textbox', dim, 'String', psdStr, 'FitBoxToText','on')
+% %         ylabel('Stage1 onset latency')
+% %         xlabel(char(psdVarname(ch)))
+% %         xlim([0, round(max(psdMax))])
+% %         saveas(gcf, append(dirpath, 'sample.png'))
+% %         close
+    end
+end

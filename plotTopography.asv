@@ -1,0 +1,42 @@
+% At first, you need to open EEGLAB to use
+% topoplot(data_vector, EEG.chanlocs(1:19))
+chn = 19;
+indexn = 4;
+
+pse_first_path = "./dataset_RK/pse_result_Wake_First_20s.csv";
+pse_last_path = "./dataset_RK/pse_result_Wake_Last_20s_2.csv";
+
+pse_first_mat = readmatrix(pse_first_path);
+pse_last_mat = readmatrix(pse_last_path);
+
+pse_first_ave = zeros(indexn, chn);
+pse_last_ave = zeros(indexn, chn);
+
+for ii = 1:4
+    pse_first_ave = mean(pse_first_mat(:, chn*(ii-1)+1:19*ii));
+    pse_last_ave = mean(pse_last_mat(:, chn*(ii-1)+1:19*ii));
+
+    x = [pse_first_ave pse_last_ave];
+    
+    if  mod(ii, 2) == 0
+        minlim = min(x);
+        maxlim = max(x);
+        
+        figure()
+        subplot(1, 2, 1);
+        topoplot(pse_first_ave, EEG.chanlocs(1:19), 'maplimits', [minlim maxlim]);
+        subplot(1, 2, 2);
+        topoplot(pse_last_ave, EEG.chanlocs(1:19), 'maplimits', [minlim maxlim]);
+    
+    else
+        figure()
+        subplot(1, 2, 1);
+        topoplot(pse_first_ave, EEG.chanlocs(1:19), 'chantype');
+        subplot(1, 2, 2);
+        topoplot(pse_last_ave, EEG.chanlocs(1:19));
+    
+    end
+end
+
+
+
